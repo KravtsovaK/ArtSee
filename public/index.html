@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Государственный каталог</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.6.14/dist/vue.js"></script>
+    <script src="https://unpkg.com/vue-router@3/dist/vue-router.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; background-color: #f5f5f5; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 0 15px; }
+        header { background-color: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); padding: 15px 0; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .logo { font-size: 24px; font-weight: 700; color: #1565c0; text-decoration: none; cursor: pointer; }
+        .logo:hover { color: #0d47a1; }
+        .search-bar { display: flex; margin-bottom: 15px; }
+        .search-bar input { flex-grow: 1; padding: 12px; border: 1px solid #ddd; border-radius: 4px 0 0 4px; font-size: 16px; }
+        .search-bar button { background-color: #1565c0; color: white; border: none; padding: 0 20px; border-radius: 0 4px 4px 0; cursor: pointer; }
+        .nav-links { display: flex; gap: 30px; }
+        .nav-link { text-decoration: none; color: #333; font-weight: 500; padding: 5px 10px; border-radius: 4px; transition: background-color 0.3s; }
+        .nav-link:hover { background-color: #f0f0f0; }
+        .nav-link.active { color: #1565c0; background-color: #e3f2fd; }
+        .museums-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; margin: 20px auto; max-width: 1200px; }
+        .museums-title { font-size: 32px; color: #1565c0; margin-bottom: 30px; text-align: center; }
+        .museums-content { display: flex; flex-direction: column; gap: 30px; }
+        @media (min-width: 768px) { .museums-content { flex-direction: row; } }
+        .museums-map-container { flex: 2; min-height: 600px; background-color: #f5f5f5; border-radius: 8px; overflow: hidden; position: relative; }
+        .museums-list { flex: 1; padding: 20px; }
+        .museums-list h3 { font-size: 20px; color: #1565c0; margin-bottom: 20px; }
+        .museum-card { background-color: #f9f9f9; border-radius: 8px; padding: 15px; margin-bottom: 15px; border-left: 4px solid #1565c0; transition: all 0.3s; cursor: pointer; }
+        .museum-card:hover { background-color: #e3f2fd; transform: translateX(5px); }
+        .museum-card.active { background-color: #e3f2fd; border-left-color: #ff5722; }
+        .museum-card h4 { color: #1565c0; margin-bottom: 5px; font-size: 16px; }
+        .museum-card p { color: #666; font-size: 14px; margin-bottom: 8px; }
+        .museum-card .museum-stats { color: #888; font-size: 13px; display: flex; justify-content: space-between; }
+        .museum-exhibits-modal { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; padding: 20px; }
+        .modal-content { background-color: white; border-radius: 12px; max-width: 800px; width: 100%; max-height: 80vh; overflow-y: auto; box-shadow: 0 10px 40px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; padding: 20px 30px; border-bottom: 1px solid #eee; background-color: #1565c0; color: white; border-radius: 12px 12px 0 0; }
+        .modal-title { font-size: 24px; margin: 0; }
+        .modal-close { background: none; border: none; color: white; font-size: 28px; cursor: pointer; padding: 0; width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+        .modal-close:hover { opacity: 0.8; }
+        .modal-body { padding: 30px; }
+        .exhibits-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; margin-top: 20px; }
+        .exhibit-card { background: #f9f9f9; border-radius: 8px; padding: 15px; cursor: pointer; transition: transform 0.3s; text-decoration: none; color: inherit; display: block; }
+        .exhibit-card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+        .exhibit-title { font-weight: 500; margin-bottom: 8px; font-size: 16px; color: #1565c0; }
+        .exhibit-type { color: #666; font-size: 13px; margin-bottom: 5px; }
+        .exhibit-year { color: #888; font-size: 12px; }
+        .empty-exhibits { text-align: center; padding: 40px; color: #666; font-size: 18px; }
+        @media (max-width: 768px) { .nav-links { gap: 15px; } .museums-content { flex-direction: column; } .museums-map-container { min-height: 400px; } .exhibits-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
+        .main-content { display: flex; margin-top: 20px; }
+        .sidebar { width: 250px; background-color: #fff; padding: 20px; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-right: 20px; }
+        .filters h3 { margin-bottom: 15px; font-size: 18px; }
+        .filter-group { margin-bottom: 15px; }
+        .filter-group h4 { font-size: 14px; margin-bottom: 8px; color: #666; }
+        .filter-options label { display: block; margin-bottom: 5px; font-size: 14px; }
+        .catalog-content { flex-grow: 1; }
+        .content-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .sort-options select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        .items-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }
+        .item-card { background-color: #fff; border-radius: 4px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); overflow: hidden; transition: transform 0.3s; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+        .item-card:hover { transform: translateY(-5px); }
+        .item-image { height: 180px; background-color: #eee; display: flex; align-items: center; justify-content: center; color: #999; position: relative; overflow: hidden; }
+        .item-image img { width: 100%; height: 100%; object-fit: cover; transition: transform 0.3s; }
+        .item-card:hover .item-image img { transform: scale(1.05); }
+        .item-image-placeholder { display: flex; align-items: center; justify-content: center; color: #999; font-size: 14px; }
+        .item-info { padding: 15px; }
+        .item-title { font-weight: 500; margin-bottom: 8px; font-size: 16px; }
+        .item-museum { color: #666; font-size: 14px; margin-bottom: 5px; }
+        .item-year { color: #888; font-size: 13px; }
+        footer { background-color: #fff; padding: 30px 0; margin-top: 40px; box-shadow: 0 -2px 5px rgba(0,0,0,0.1); }
+        .footer-content { display: flex; justify-content: space-between; }
+        .footer-section { flex: 1; }
+        .footer-section h3 { margin-bottom: 15px; font-size: 16px; }
+        .footer-section ul { list-style: none; }
+        .footer-section ul li { margin-bottom: 8px; }
+        .footer-section ul li a { text-decoration: none; color: #666; font-size: 14px; }
+        .pagination { display: flex; justify-content: center; margin-top: 30px; }
+        .pagination button { background-color: #fff; border: 1px solid #ddd; padding: 8px 12px; margin: 0 5px; cursor: pointer; border-radius: 4px; }
+        .pagination button.active { background-color: #1565c0; color: white; border-color: #1565c0; }
+        .item-detail-container { background-color: #fff; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 30px; margin: 20px auto; max-width: 1200px; position: relative; }
+        .back-button { display: inline-block; background-color: #1565c0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; margin-bottom: 20px; border: none; cursor: pointer; font-size: 16px; }
+        .back-button:hover { background-color: #0d47a1; }
+        .item-detail { display: flex; flex-direction: column; gap: 30px; }
+        @media (min-width: 768px) { .item-detail { flex-direction: row; } }
+        .detail-image-container { flex: 1; position: relative; }
+        .detail-image { min-height: 400px; background-color: #eee; display: flex; align-items: center; justify-content: center; color: #999; border-radius: 4px; overflow: hidden; position: relative; }
+        .detail-image img { width: 100%; height: 100%; object-fit: cover; }
+        .detail-image-placeholder { display: flex; align-items: center; justify-content: center; color: #999; font-size: 16px; text-align: center; padding: 20px; }
+        .image-gallery { display: flex; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .gallery-thumbnail { width: 80px; height: 80px; border-radius: 4px; overflow: hidden; cursor: pointer; border: 2px solid transparent; transition: border-color 0.3s; }
+        .gallery-thumbnail:hover { border-color: #1565c0; }
+        .gallery-thumbnail.active { border-color: #1565c0; }
+        .gallery-thumbnail img { width: 100%; height: 100%; object-fit: cover; }
+        .detail-info { flex: 1; padding: 20px; }
+        .detail-title { font-size: 28px; margin-bottom: 10px; color: #1565c0; }
+        .detail-museum { font-size: 20px; margin-bottom: 20px; color: #666; }
+        .detail-meta { margin-bottom: 25px; background-color: #f9f9f9; padding: 20px; border-radius: 4px; }
+        .detail-meta div { margin-bottom: 12px; font-size: 16px; }
+        .detail-description { line-height: 1.8; margin-bottom: 30px; font-size: 16px; color: #444; }
+        .detail-properties { margin-top: 30px; }
+        .property { display: flex; border-bottom: 1px solid #eee; padding: 12px 0; }
+        .property-name { flex: 1; font-weight: 500; color: #555; }
+        .property-value { flex: 2; color: #333; }
+        .detail-bottom-nav { margin-top: 40px; padding-top: 30px; border-top: 1px solid #eee; text-align: center; }
+        .not-found { text-align: center; padding: 100px 20px; }
+        .not-found h1 { font-size: 48px; color: #1565c0; margin-bottom: 20px; }
+        .not-found p { font-size: 18px; margin-bottom: 30px; }
+        .home-link { display: inline-block; background-color: #1565c0; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; }
+        .home-link:hover { background-color: #0d47a1; }
+        @media (max-width: 768px) { .main-content { flex-direction: column; } .sidebar { width: 100%; margin-right: 0; margin-bottom: 20px; } .footer-content { flex-direction: column; } .footer-section { margin-bottom: 30px; } .image-gallery { justify-content: center; } }
+        .loading-spinner {
+            text-align: center;
+            padding: 50px;
+            font-size: 20px;
+            color: #1565c0;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <router-view></router-view>
+    </div>
+
+    <script>
+        // --- КОМПОНЕНТЫ ---
+
+        // Компонент главной страницы с каталогом
+        // ПОЛНОСТЬЮ ЗАМЕНИТЕ const HomePage = { ... } НА ЭТОТ КОД:
+
+const HomePage = {
+    data() {
+        return {
+            searchQuery: '',
+            sortBy: 'date',
+            items: [],
+            loading: true,
+            selectedTypes: [],
+            selectedMuseums: [],
+            filterOptions: {
+                types: ['Живопись', 'Скульптура', 'Археология', 'Декоративно-прикладное искусство', 'Драгоценности'],
+                museums: ['Эрмитаж', 'Третьяковская галерея', 'Русский музей', 'Музей Кремля', 'Оружейная палата'],
+            },
+            showMuseumExhibitsModal: false,
+            selectedMuseumForModal: null,
+            museumExhibits: []
+        }
+    },
+    created() {
+        this.fetchItems();
+    },
+    // ВОТ ЧЕГО НЕ ХВАТАЛО!
+    // Этот блок следит за изменениями галочек и сразу вызывает загрузку
+    watch: {
+        selectedTypes() {
+            console.log("Изменились типы, перезагружаю...");
+            this.fetchItems();
+        },
+        selectedMuseums() {
+            console.log("Изменились музеи, перезагружаю...");
+            this.fetchItems();
+        },
+        sortBy() {
+            this.fetchItems();
+        }
+    },
+    methods: {
+        fetchItems() {
+            this.loading = true;
+            
+            // Собираем параметры для отправки на сервер
+            const params = new URLSearchParams();
+            
+            if (this.searchQuery) params.append('search', this.searchQuery);
+            if (this.sortBy) params.append('sort', this.sortBy);
+            
+            // Превращаем массив ['Живопись', 'Скульптура'] в строку "Живопись,Скульптура"
+            if (this.selectedTypes.length > 0) {
+                params.append('types', this.selectedTypes.join(','));
+            }
+            
+            if (this.selectedMuseums.length > 0) {
+                params.append('museums', this.selectedMuseums.join(','));
+            }
+
+            // Отправляем запрос
+            fetch(`/api/exhibits?${params.toString()}`)
+                .then(res => res.json())
+                .then(data => {
+                    this.items = data;
+                    this.loading = false;
+                })
+                .catch(err => {
+                    console.error(err);
+                    this.loading = false;
+                });
+        },
+        performSearch() {
+            this.fetchItems();
+        },
+        openItemDetail(itemId) {
+            this.$router.push({ path: `/item/${itemId}` });
+        },
+        showMuseumExhibits(museumName) {
+           // Логика модалки (оставьте как было или пустой)
+        },
+        closeMuseumExhibitsModal() {
+            this.showMuseumExhibitsModal = false;
+        }
+    },
+    template: `
+        <div>
+            <header>
+                <div class="container">
+                    <div class="header-top">
+                        <a href="#" @click.prevent="$router.push('/')" class="logo">ArtSee</a>
+                        <div class="nav-links">
+                            <router-link to="/" class="nav-link" exact-active-class="active">Каталог</router-link>
+                            <router-link to="/museums" class="nav-link" active-class="active">Музеи</router-link>
+                        </div>
+                    </div>
+                    <div class="search-bar">
+                        <input type="text" placeholder="Поиск..." v-model="searchQuery" @keyup.enter="performSearch">
+                        <button @click="performSearch">Найти</button>
+                    </div>
+                </div>
+            </header>
+
+            <main class="container">
+                <div class="main-content">
+                    <aside class="sidebar">
+                        <div class="filters">
+                            <h3>Фильтры</h3>
+                            
+                            <div class="filter-group">
+                                <h4>Тип объекта</h4>
+                                <div class="filter-options">
+                                    <label v-for="type in filterOptions.types" :key="type">
+                                        <input type="checkbox" :value="type" v-model="selectedTypes"> {{ type }}
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <h4>Музей</h4>
+                                <div class="filter-options">
+                                    <label v-for="museum in filterOptions.museums" :key="museum">
+                                        <input type="checkbox" :value="museum" v-model="selectedMuseums"> {{ museum }}
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <section class="catalog-content">
+                        <div class="content-header">
+                            <h2>Коллекция ({{ items.length }})</h2>
+                            <div class="sort-options">
+                                <select v-model="sortBy">
+                                    <option value="date">Сначала новые</option>
+                                    <option value="name">По названию</option>
+                                    <option value="museum">По музею</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div v-if="loading" class="loading-spinner">Загрузка...</div>
+
+                        <div v-else-if="items.length === 0" style="text-align:center; padding: 40px;">
+                            Ничего не найдено по выбранным фильтрам.
+                        </div>
+
+                        <div v-else class="items-grid">
+                            <div class="item-card" v-for="item in items" :key="item._id" @click="openItemDetail(item._id)">
+                                <div class="item-image">
+                                    <img v-if="item.images && item.images.length" :src="item.images[0]" :alt="item.title">
+                                    <div v-else class="item-image-placeholder">Нет фото</div>
+                                </div>
+                                <div class="item-info">
+                                    <div class="item-title">{{ item.title }}</div>
+                                    <div class="item-museum">{{ item.museum }}</div>
+                                    <div class="item-year">{{ item.type }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+                </div>
+            </main>
+            <footer><div class="container"><p style="text-align:center;color:#999">ArtSee 2023</p></div></footer>
+        </div>
+    `
+};
+
+        // Компонент страницы деталей экспоната
+        const ItemDetailPage = {
+            data() {
+                return {
+                    item: null,
+                    selectedImageIndex: 0,
+                    loading: true
+                }
+            },
+            computed: {
+                itemId() {
+                    return this.$route.params.id; // ID теперь может быть строкой (MongoDB ObjectId)
+                },
+                currentImage() {
+                    if (!this.item || !this.item.images || this.item.images.length === 0) {
+                        return null;
+                    }
+                    return this.item.images[this.selectedImageIndex];
+                }
+            },
+            created() {
+                this.loadItem();
+            },
+            methods: {
+                loadItem() {
+                    this.loading = true;
+                    // Запрос конкретного элемента по ID из API
+                    fetch(`/api/exhibits/${this.itemId}`)
+                        .then(response => {
+                            if (!response.ok) throw new Error('Not found');
+                            return response.json();
+                        })
+                        .then(data => {
+                            this.item = data;
+                            this.loading = false;
+                        })
+                        .catch(err => {
+                            console.error(err);
+                            this.item = null;
+                            this.loading = false;
+                        });
+                },
+                goBack() {
+                    this.$router.go(-1);
+                },
+                selectImage(index) {
+                    this.selectedImageIndex = index;
+                }
+            },
+            template: `
+                <div>
+                    <header>
+                        <div class="container">
+                            <div class="header-top">
+                                <a href="#" @click.prevent="$router.push('/')" class="logo">ArtSee</a>
+                                <div class="nav-links">
+                                    <router-link to="/" class="nav-link" exact-active-class="active">Каталог</router-link>
+                                    <router-link to="/museums" class="nav-link" active-class="active">Музеи</router-link>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="container">
+                        <div v-if="loading" class="loading-spinner">Загрузка информации...</div>
+                        
+                        <div v-else-if="item" class="item-detail-container">
+                            <div class="item-detail">
+                                <div class="detail-image-container">
+                                    <div class="detail-image">
+                                        <template v-if="currentImage">
+                                            <img :src="currentImage" :alt="item.title">
+                                        </template>
+                                        <template v-else>
+                                            <div class="detail-image-placeholder">
+                                                Нет изображения
+                                            </div>
+                                        </template>
+                                    </div>
+                                    
+                                    <div v-if="item.images && item.images.length > 1" class="image-gallery">
+                                        <div 
+                                            v-for="(image, index) in item.images" 
+                                            :key="index"
+                                            class="gallery-thumbnail"
+                                            :class="{ active: selectedImageIndex === index }"
+                                            @click="selectImage(index)"
+                                        >
+                                            <img :src="image" :alt="'Изображение ' + (index + 1)">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="detail-info">
+                                    <h2 class="detail-title">{{ item.title }}</h2>
+                                    <div class="detail-museum">{{ item.museum }}</div>
+                                    
+                                    <div class="detail-meta">
+                                        <div><strong>Тип:</strong> {{ item.type }}</div>
+                                        <div><strong>Период:</strong> {{ item.year }}</div>
+                                        <div><strong>Инвентарный номер:</strong> {{ item.inventoryNumber }}</div>
+                                    </div>
+                                    
+                                    <div class="detail-description">
+                                        {{ item.description }}
+                                    </div>
+                                    
+                                    <div class="detail-properties">
+                                        <div class="property">
+                                            <div class="property-name">Материал:</div>
+                                            <div class="property-value">{{ item.material }}</div>
+                                        </div>
+                                        <div class="property">
+                                            <div class="property-name">Размеры:</div>
+                                            <div class="property-value">{{ item.dimensions }}</div>
+                                        </div>
+                                        <div class="property">
+                                            <div class="property-name">Автор:</div>
+                                            <div class="property-value">{{ item.author }}</div>
+                                        </div>
+                                        <div class="property">
+                                            <div class="property-name">Место создания:</div>
+                                            <div class="property-value">{{ item.origin }}</div>
+                                        </div>
+                                        <div class="property">
+                                            <div class="property-name">Дата поступления:</div>
+                                            <div class="property-value">{{ item.acquisitionDate }}</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="detail-bottom-nav">
+                                <button class="back-button" @click="goBack">
+                                    ← Назад к каталогу
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div v-else class="not-found">
+                            <h1>404</h1>
+                            <p>Экспонат не найден</p>
+                            <div class="detail-bottom-nav">
+                                <a href="#" @click.prevent="$router.push('/')" class="home-link">Вернуться на главную</a>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Footer дублируется для простоты -->
+                    <footer>
+                       <div class="container"><p style="text-align:center; color:#888;">ArtSee © 2023</p></div>
+                    </footer>
+                </div>
+            `
+        };
+
+        // Компонент страницы музеев
+        const MuseumsPage = {
+            data() {
+                return {
+                    // Список музеев оставим статичным, но можно тоже вынести в БД
+                    museums: [
+                        {
+                            id: 1,
+                            name: 'Эрмитаж',
+                            address: 'Дворцовая пл., 2, Санкт-Петербург',
+                            description: 'Крупнейший в России и один из крупнейших в мире художественных и культурно-исторических музеев.',
+                            collection: 'Зарубежное искусство, Археология',
+                            website: 'https://www.hermitagemuseum.org',
+                            founded: '1764'
+                        },
+                        {
+                            id: 2,
+                            name: 'Третьяковская галерея',
+                            address: 'Лаврушинский пер., 10, Москва',
+                            description: 'Главный музей национального искусства России.',
+                            collection: 'Русское искусство',
+                            website: 'https://www.tretyakovgallery.ru',
+                            founded: '1856'
+                        },
+                        {
+                            id: 3,
+                            name: 'Русский музей',
+                            address: 'Инженерная ул., 4, Санкт-Петербург',
+                            description: 'Первый в стране государственный музей русского изобразительного искусства.',
+                            collection: 'Русская живопись, Иконы',
+                            website: 'https://rusmuseum.ru',
+                            founded: '1895'
+                        },
+                        {
+                            id: 4,
+                            name: 'Музей Кремля',
+                            address: 'Московский Кремль, Москва',
+                            description: 'Музей-заповедник в центре Москвы.',
+                            collection: 'Драгоценности, Оружие, Иконы',
+                            website: 'https://www.kreml.ru',
+                            founded: '1806'
+                        }
+                    ],
+                    selectedMuseum: null,
+                    showMuseumExhibitsModal: false,
+                    allExhibits: [], // Будем загружать все экспонаты, чтобы отфильтровать их для музеев
+                    museumExhibits: []
+                }
+            },
+            created() {
+                // Загружаем экспонаты для подсчета количества и отображения в модалке
+                fetch('/api/exhibits')
+                    .then(res => res.json())
+                    .then(data => {
+                        this.allExhibits = data;
+                    });
+            },
+            computed: {
+                filteredMuseumItems() {
+                    if (!this.selectedMuseum) return [];
+                    return this.allExhibits.filter(item => item.museum === this.selectedMuseum.name);
+                }
+            },
+            methods: {
+                getMuseumItemCount(museumName) {
+                    return this.allExhibits.filter(item => item.museum === museumName).length;
+                },
+                loadYandexMap() {
+                    const script = document.createElement('script');
+                    script.type = 'text/javascript';
+                    script.charset = 'utf-8';
+                    script.async = true;
+                    script.src = 'https://api-maps.yandex.ru/services/constructor/1.0/js/?um=constructor%3Afafffc15a9fe9ee503634171c89c4e8dd63dd5c55d7a276f44939c371e9bec07&width=100%25&height=600&lang=ru_RU&scroll=true';
+                    
+                    const mapContainer = document.getElementById('yandex-map');
+                    if (mapContainer) {
+                        mapContainer.innerHTML = '';
+                        mapContainer.appendChild(script);
+                    }
+                },
+                selectMuseum(museum) {
+                    this.selectedMuseum = museum;
+                },
+                showMuseumExhibitsModalFunc() {
+                    if (this.selectedMuseum) {
+                        this.museumExhibits = this.filteredMuseumItems;
+                        this.showMuseumExhibitsModal = true;
+                    }
+                },
+                closeMuseumExhibitsModal() {
+                    this.showMuseumExhibitsModal = false;
+                    this.museumExhibits = [];
+                },
+                openItemDetail(itemId) {
+                    this.$router.push({ path: `/item/${itemId}` });
+                    this.closeMuseumExhibitsModal();
+                }
+            },
+            mounted() {
+                this.loadYandexMap();
+            },
+            template: `
+                <div>
+                    <header>
+                        <div class="container">
+                            <div class="header-top">
+                                <a href="#" @click.prevent="$router.push('/')" class="logo">ArtSee</a>
+                                <div class="nav-links">
+                                    <router-link to="/" class="nav-link" exact-active-class="active">Каталог</router-link>
+                                    <router-link to="/museums" class="nav-link" active-class="active">Музеи</router-link>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
+
+                    <div class="container">
+                        <div class="museums-container">
+                            <h1 class="museums-title">Музеи России</h1>
+                            
+                            <div class="museums-content">
+                                <div class="museums-map-container">
+                                    <div id="yandex-map" style="width: 100%; height: 600px;"></div>
+                                    
+                                    <div v-if="!selectedMuseum" class="map-placeholder" style="text-align: center; padding: 20px; color: #666;">
+                                        <h3>Выберите музей для просмотра экспонатов</h3>
+                                        <p>Кликните на музей в списке справа</p>
+                                    </div>
+                                    
+                                    <div v-if="selectedMuseum" class="selected-museum-info" style="background: white; padding: 20px; border-radius: 8px; margin-top: 20px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+                                        <h3 style="color: #1565c0; margin-bottom: 15px;">{{ selectedMuseum.name }}</h3>
+                                        <p><strong>Адрес:</strong> {{ selectedMuseum.address }}</p>
+                                        <p><strong>Основан:</strong> {{ selectedMuseum.founded }} год</p>
+                                        <p><strong>Коллекция:</strong> {{ selectedMuseum.collection }}</p>
+                                        <p><strong>Экспонатов в каталоге:</strong> {{ filteredMuseumItems.length }}</p>
+                                        <p>{{ selectedMuseum.description }}</p>
+                                        <div style="margin-top: 20px;">
+                                            <button @click="showMuseumExhibitsModalFunc" style="background-color: #1565c0; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-right: 10px;">
+                                                Показать экспонаты
+                                            </button>
+                                            <a :href="selectedMuseum.website" target="_blank" style="color: #1565c0; text-decoration: none; padding: 10px 20px; border: 1px solid #1565c0; border-radius: 4px; display: inline-block;">
+                                                Сайт музея
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="museums-list">
+                                    <h3>Список музеев</h3>
+                                    
+                                    <div 
+                                        v-for="museum in museums" 
+                                        :key="museum.id"
+                                        class="museum-card"
+                                        :class="{ active: selectedMuseum && selectedMuseum.id === museum.id }"
+                                        @click="selectMuseum(museum)"
+                                    >
+                                        <h4>{{ museum.name }}</h4>
+                                        <p style="font-size: 13px; color: #666; margin-bottom: 8px;">{{ museum.address }}</p>
+                                        <p style="font-size: 14px; margin-bottom: 10px;">{{ museum.description.substring(0, 80) }}...</p>
+                                        <div class="museum-stats">
+                                            <span>Основан: {{ museum.founded }}</span>
+                                            <!-- Теперь количество считается динамически -->
+                                            <span>Экспонатов: {{ getMuseumItemCount(museum.name) }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Модальное окно с экспонатами музея -->
+                    <div v-if="showMuseumExhibitsModal" class="museum-exhibits-modal" @click.self="closeMuseumExhibitsModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h2 class="modal-title">Экспонаты музея: {{ selectedMuseum.name }}</h2>
+                                <button class="modal-close" @click="closeMuseumExhibitsModal">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <div v-if="museumExhibits.length > 0" class="exhibits-grid">
+                                    <div class="exhibit-card" v-for="exhibit in museumExhibits" :key="exhibit._id" @click="openItemDetail(exhibit._id)">
+                                        <div class="exhibit-title">{{ exhibit.title }}</div>
+                                        <div class="exhibit-type">{{ exhibit.type }}</div>
+                                        <div class="exhibit-year">{{ exhibit.year }}</div>
+                                    </div>
+                                </div>
+                                <div v-else class="empty-exhibits">
+                                    Нет экспонатов для этого музея
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <footer>
+                         <div class="container"><p style="text-align:center; color:#888;">ArtSee © 2023</p></div>
+                    </footer>
+                </div>
+            `
+        };
+
+        const routes = [
+            { path: '/', component: HomePage },
+            { path: '/item/:id', component: ItemDetailPage },
+            { path: '/museums', component: MuseumsPage },
+            { path: '*', redirect: '/' }
+        ];
+
+        const router = new VueRouter({
+            routes,
+            mode: 'hash'
+        });
+
+        new Vue({
+            el: '#app',
+            router,
+            created() {
+                const path = window.location.hash.substr(1);
+                if (path && path !== '/' && !path.startsWith('/item/')) {
+                    this.$router.push('/');
+                }
+            }
+        });
+    </script> 
+</body>
+</html>

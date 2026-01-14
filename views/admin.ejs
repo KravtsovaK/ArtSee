@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head><title>Admin Panel - MVC</title></head>
+<body>
+    <h1>Панель администратора (MVC View)</h1>
+    <table border="1">
+        <tr><th>Название</th><th>Музей</th><th>Действие</th></tr>
+        <% exhibits.forEach(function(item) { %>
+            <tr>
+                <td><%= item.title %></td>
+                <td><%= item.museum %></td>
+                <td><a href="/api/exhibits/delete/<%= item._id %>">Удалить</a></td>
+            </tr>
+        <% }); %>
+    </table>
+</body>
+</html>
